@@ -1,0 +1,221 @@
+<html>
+	<head>
+		<title>ORM texture generator</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			* {
+				margin: 0;
+			}
+
+			body {
+				font-family: "Roboto", sans-serif;
+				padding: 50px;
+				overflow: hidden;
+			}
+
+			h1,
+			h2,
+			b {
+				font-weight: 500;
+			}
+
+			.textures {
+				display: flex;
+			}
+
+			.textures .texture-preview {
+				display: flex;
+				flex-direction: column;
+			}
+
+			.textures .texture-preview .output {
+				width: 200px;
+				height: 200px;
+				margin: 16px 0;
+			}
+
+			.textures .arrow-icon {
+				width: 64px;
+				height: 64px;
+				opacity: 0.25;
+				align-self: center;
+				margin-right: 48px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>ORM texture generator</h1>
+		<br />
+		<div class="textures">
+			<div class="texture-preview">
+				<h2>Occlusion</h2>
+				<canvas
+					id="generate-output-o"
+					class="output grayscale"
+					alt="Occlusion"
+				></canvas>
+				<input id="generate-input-o" type="file" />
+			</div>
+			<div class="texture-preview">
+				<h2>Roughness</h2>
+				<canvas
+					id="generate-output-r"
+					class="output grayscale"
+					alt="Roughness"
+				></canvas>
+				<input id="generate-input-r" type="file" />
+			</div>
+			<div class="texture-preview">
+				<h2>Metallic</h2>
+				<canvas
+					id="generate-output-m"
+					class="output grayscale"
+					alt="Metallic"
+				></canvas>
+				<input id="generate-input-m" type="file" />
+			</div>
+			<img
+				class="arrow-icon"
+				src="https://fonts.gstatic.com/s/i/materialicons/arrow_right_alt/v4/24px.svg"
+			/>
+			<div class="texture-preview">
+				<h2>Output</h2>
+				<canvas
+					id="generate-output"
+					class="output"
+					alt="Output"
+				></canvas>
+				<p style="opacity: 0.5;">Rmb and "Save image as..."</p>
+			</div>
+		</div>
+		<script>
+			function initGenerator() {
+				const getSize = () => {
+					let lastSize = null;
+
+					const lastSizeStr = localStorage.getItem("size");
+					if (lastSizeStr != null) {
+						lastSize = parseInt(lastSizeStr);
+						if (lastSize + "" == "NaN") {
+							lastSize = null;
+							localStorage.removeItem("size");
+						}
+					}
+
+					const sizeStr = prompt(
+						"Pick an image size (e.g. 1024, 2048)",
+						lastSize != null ? lastSize : 1024,
+					);
+
+					const size = parseInt(sizeStr);
+					if (size + "" == "NaN") {
+						confirm("Input not an integer");
+						return getSize();
+					}
+
+					localStorage.setItem("size", size + "");
+					return size;
+				};
+
+				const size = getSize();
+
+				const textures = {
+					o: {
+						input: document.getElementById("generate-input-o"),
+						canvas: document.getElementById("generate-output-o"),
+					},
+					r: {
+						input: document.getElementById("generate-input-r"),
+						canvas: document.getElementById("generate-output-r"),
+					},
+					m: {
+						input: document.getElementById("generate-input-m"),
+						canvas: document.getElementById("generate-output-m"),
+					},
+				};
+
+				const canvas = document.getElementById("generate-output");
+				canvas.width = canvas.height = size;
+
+				const ctx = canvas.getContext("2d");
+				ctx.fillStyle = "#000000";
+				ctx.fillRect(0, 0, size, size);
+
+				const makeOutput = () => {
+					const pixels = Object.keys(textures).reduce(
+						(pixels, type) => {
+							pixels[type] = textures[type].canvas
+								.getContext("2d")
+								.getImageData(0, 0, size, size).data;
+							return pixels;
+						},
+						{},
+					);
+
+					const final = ctx.createImageData(size, size);
+
+					// for each pixel
+					for (let i = 0; i < size * size * 4; i += 4) {
+						final.data[i + 0] = pixels.o[i];
+						final.data[i + 1] = pixels.r[i];
+						final.data[i + 2] = pixels.m[i];
+						final.data[i + 3] = 255;
+					}
+
+					ctx.putImageData(final, 0, 0);
+				};
+
+				Object.keys(textures).forEach(type => {
+					const input = textures[type].input;
+
+					const canvas = textures[type].canvas;
+					canvas.width = canvas.height = size;
+
+					const ctx = canvas.getContext("2d");
+					ctx.fillStyle = "#000000";
+					ctx.fillRect(0, 0, size, size);
+
+					const makeGrayscale = image => {
+						const pixels = ctx.getImageData(0, 0, size, size).data;
+						const final = ctx.createImageData(size, size);
+
+						// for each pixel
+						for (let i = 0; i < size * size * 4; i += 4) {
+							const value =
+								(pixels[i + 0] +
+									pixels[i + 1] +
+									pixels[i + 2]) /
+								3;
+
+							final.data[i + 0] = value;
+							final.data[i + 1] = value;
+							final.data[i + 2] = value;
+							final.data[i + 3] = 255;
+						}
+
+						ctx.putImageData(final, 0, 0);
+					};
+
+					input.addEventListener("change", e => {
+						if (input.files.length != 1) return;
+						const file = input.files[0];
+
+						const image = new Image();
+						image.addEventListener("load", () => {
+							ctx.drawImage(image, 0, 0, size, size);
+							makeGrayscale();
+
+							makeOutput();
+						});
+
+						image.src = URL.createObjectURL(file);
+					});
+				});
+			}
+			initGenerator();
+		</script>
+	</body>
+</html>
