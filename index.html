@@ -76,6 +76,19 @@
 					alt="Metallic"
 				></canvas>
 				<input id="generate-input-m" type="file" />
+				<br />
+				<div>
+					<input
+						id="generate-input-m-alt"
+						type="number"
+						step="0.01"
+						placeholder="0 to 1"
+						style="width: 80px;"
+					/>
+					<button id="generate-input-m-alt-button">
+						Generate metallic
+					</button>
+				</div>
 			</div>
 			<img
 				class="arrow-icon"
@@ -214,7 +227,27 @@
 						image.src = URL.createObjectURL(file);
 					});
 				});
+
+				document
+					.getElementById("generate-input-m-alt-button")
+					.addEventListener("click", () => {
+						const valueStr = document.getElementById(
+							"generate-input-m-alt",
+						).value;
+
+						const value = parseFloat(valueStr);
+						if (value + "" == "NaN")
+							return confirm("Metallic value not a number");
+						if (value < 0 || value > 1)
+							return confirm("Metallic value not between 0 to 1");
+
+						const v = value * 255;
+						const ctx = textures.m.canvas.getContext("2d");
+						ctx.fillStyle = `rgb(${v},${v},${v})`;
+						ctx.fillRect(0, 0, size, size);
+					});
 			}
+
 			initGenerator();
 		</script>
 	</body>
