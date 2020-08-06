@@ -248,6 +248,15 @@
 
 						makeOutput();
 					});
+
+				{
+					// occlustion texture should be white by default
+					const ctx = textures.o.canvas.getContext("2d");
+					ctx.fillStyle = `rgb(255,255,255)`;
+					ctx.fillRect(0, 0, size, size);
+				}
+
+				makeOutput();
 			}
 
 			initGenerator();
